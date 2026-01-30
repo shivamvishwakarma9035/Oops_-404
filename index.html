@@ -1,26 +1,41 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>QuasarAI - Browser Logic</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <style>
-        body { margin: 0; background: #121212; overflow: hidden; }
+        body {
+            margin: 0;
+            background: #121212;
+            overflow: hidden;
+        }
+
         #cursor {
             width: 25px;
             height: 25px;
             background: red;
             border-radius: 50%;
-            position: fixed; 
+            position: fixed;
             top: 0;
             left: 0;
             z-index: 10000;
             pointer-events: none;
-            transform: translate(-50%, -50%); 
+            transform: translate(-50%, -50%);
         }
-        #webcam { transform: scaleX(-1); position: fixed; bottom: 10px; right: 10px; width: 200px; border-radius: 10px; }
+
+        #webcam {
+            transform: scaleX(-1);
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 200px;
+            border-radius: 10px;
+        }
     </style>
 </head>
+
 <body>
     <div id="cursor"></div>
     <video id="webcam"></video>
@@ -29,9 +44,23 @@
         const video = document.getElementById('webcam');
         const cursor = document.getElementById('cursor');
 
-        const faceMesh = new FaceMesh({locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-        }});
+        // Connect to FastAPI WebSocket
+        // index.html mein ye change karein
+        const socket = new WebSocket('ws://localhost:8000/ws');
+
+        socket.onopen = () => {
+            console.log("WebSocket Connected to Backend!");
+        };
+
+        socket.onerror = (error) => {
+            console.error("WebSocket Error: ", error);
+        };
+
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+            }
+        });
 
         faceMesh.setOptions({
             maxNumFaces: 1,
@@ -40,9 +69,14 @@
             minTrackingConfidence: 0.5
         });
 
+        faceMesh.onResults(onResults);
+
+        let blinkCounter = 0; // Blink duration track karne ke liye
+
+
         const camera = new Camera(video, {
             onFrame: async () => {
-                await faceMesh.send({image: video});
+                await faceMesh.send({ image: video });
             },
             width: 640,
             height: 480
@@ -50,4 +84,5 @@
         camera.start();
     </script>
 </body>
+
 </html>
